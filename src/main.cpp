@@ -47,17 +47,30 @@ void showPage(int page) {
 
 // 處理向上按鈕的事件
 void handleUp(Button2 &btn) {
+    Serial.println("按鈕已成功按下");
     background.fillSprite(TFT_BLACK);  // 清空螢幕內容
     currentPage--;  // 頁碼減 1
     if (currentPage < 1) currentPage = totalPages;  // 如果小於 1，則跳轉到最後一頁
+
+    if (currentPage == 2) {
+        currentX = 10;  // 當進入 page2 時重置 currentX
+    }
+
     showPage(currentPage);  // 顯示新頁面
 }
 
 // 處理向下按鈕的事件
 void handleDown(Button2 &btn) {
+    Serial.println("按鈕已成功按下");
+
     background.fillSprite(TFT_BLACK);  // 清空螢幕內容
     currentPage++;  // 頁碼加 1
     if (currentPage > totalPages) currentPage = 1;  // 如果大於總頁數，則跳轉到第一頁
+
+    if (currentPage == 2) {
+        currentX = 10;  // 當進入 page2 時重置 currentX
+    }
+
     showPage(currentPage);  // 顯示新頁面
 }
 
@@ -65,6 +78,7 @@ void handleDown(Button2 &btn) {
 void setup() {
 
 
+  Serial.begin(9600);  // 初始化 Serial 通訊，波特率設置為 9600
 
 
   pinMode(PIN_POWER_ON, OUTPUT); //triggers the LCD backlight
@@ -85,6 +99,9 @@ void setup() {
     // 配置按鈕事件處理器
     buttonUp.setPressedHandler(handleUp);      // 當按下“向上”按鈕時，呼叫 handleUp
     buttonDown.setPressedHandler(handleDown);  // 當按下“向下”按鈕時，呼叫 handleDown
+
+    // 設定長按時間為一秒
+    buttonUp.setLongClickTime(1000);  // 設置長按時間為 1000 毫秒
 
     // 設定長按事件處理器
     buttonUp.setLongClickHandler(handleLongPress);  // 當長按“向上”按鈕時，呼叫 handleLongPress

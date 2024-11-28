@@ -46,8 +46,6 @@ void showPage3(TFT_eSPI &tft, TFT_eSprite &background) {
         x = -100;
     }
 
-    arrowSprite.deleteSprite(); // 刪除箭頭 sprite 以釋放記憶體
-    txtSprite.deleteSprite(); // 刪除文字 sprite 以釋放記憶體
 }
 
 #endif // PAGE3_H
