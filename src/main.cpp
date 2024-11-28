@@ -1,114 +1,102 @@
 #include <Arduino.h>
 #include <TFT_eSPI.h>
+#include <Button2.h>   // Button handling library
 
-float currentHeartRateBPM = 70.0; // 心率設定為常數 70
-float currentBreathingRateRPM = 15.0; // 呼吸速率設定為常數 15
+// 包含頁面檔案（假設它們各自定義了不同的頁面顯示函數）
+#include "page1.h"
+#include "page2.h"
+#include "page3.h"
+// #include "page4.h"
+// #include "page5.h"
 
+#define PIN_POWER_ON 15 // LCD and battery Power Enable
+#define PIN_LCD_BL 38 // BackLight enable pin (see Dimming.txt)
+
+
+// 初始化 TFT 顯示屏
 TFT_eSPI tft = TFT_eSPI();
+TFT_eSprite background = TFT_eSprite(&tft);  // Background sprite shared across pages
 
-float heartData[200] = {0};
-float breathData[200] = {0};
+// 當前顯示的頁面編號，初始為第 1 頁
+int currentPage = 1;
+// 定義總頁數
+const int totalPages = 3;            
 
-float breathPhase = 0;
-float heartPhase = 0;
+// 定義按鈕的 GPIO 針腳
+Button2 buttonUp(14);    // 向上切換頁面的按鈕，連接 GPIO14
+Button2 buttonDown(0);   // 向下切換頁面的按鈕，連接 GPIO0
 
-int currentX = 10;
-int max_X = 200;
-// 函數宣告
-void updateHeartAndBreathDisplay();
 
-void setup() {
-  Serial.begin(115200);
-  delay(3000);  // 等待串口初始化
-
-  // 初始化 TFT 顯示屏
-  tft.init();
-  tft.setRotation(3);
-  tft.fillScreen(TFT_BLACK);
-  tft.setTextColor(TFT_GREEN, TFT_BLACK);
-  tft.setTextSize(18);
-
-  // 更新顯示的心率和呼吸速率
-  updateHeartAndBreathDisplay();
+// 處理長按按鈕的事件
+void handleLongPress(Button2 &btn) {
+    // 進入深度休眠模式
+    esp_deep_sleep_start();
 }
 
-float generatePQRSTWave(float phase) {
-  if (phase < 0.6 * PI) {
-    return 0.5 * sin(20 * phase);
-  } else if (phase < 0.75 * PI) {
-    return -0.5;
-  } else if (phase < 0.9 * PI) {
-    return 3.0;
-  } else if (phase < 1.05 * PI) {
-    return -1.0;
-  } else if (phase < PI) {
-    return 1.0 * sin(2 * (phase - 1.1 * PI));
-  } else {
-    return 0;
+// 顯示指定的頁面
+void showPage(int page) {
+  // 根據頁面編號顯示對應的內容
+  switch (page) {
+    case 1: showPage1(tft, background); break;
+    case 2: showPage2(tft, background); break;
+    case 3: showPage3(tft, background); break;
+    // case 4: showPage4(tft, background); break;
+    // case 5: showPage5(tft, background); break;
   }
+}
+
+// 處理向上按鈕的事件
+void handleUp(Button2 &btn) {
+    background.fillSprite(TFT_BLACK);  // 清空螢幕內容
+    currentPage--;  // 頁碼減 1
+    if (currentPage < 1) currentPage = totalPages;  // 如果小於 1，則跳轉到最後一頁
+    showPage(currentPage);  // 顯示新頁面
+}
+
+// 處理向下按鈕的事件
+void handleDown(Button2 &btn) {
+    background.fillSprite(TFT_BLACK);  // 清空螢幕內容
+    currentPage++;  // 頁碼加 1
+    if (currentPage > totalPages) currentPage = 1;  // 如果大於總頁數，則跳轉到第一頁
+    showPage(currentPage);  // 顯示新頁面
+}
+
+
+void setup() {
+
+
+
+
+  pinMode(PIN_POWER_ON, OUTPUT); //triggers the LCD backlight
+  pinMode(PIN_LCD_BL, OUTPUT); // BackLight enable pin
+
+  digitalWrite(PIN_POWER_ON, HIGH);
+  digitalWrite(PIN_LCD_BL, HIGH);
+  // 初始化 TFT 顯示屏
+  tft.init();
+  tft.setRotation(3);  // 設定顯示旋轉角度
+  // 建立背景精靈並填充黑色
+  background.createSprite(tft.width(), tft.height());
+  background.fillSprite(TFT_BLACK);
+
+  background.setSwapBytes(true);  // 設置字節順序以確保顏色顯示正確
+
+  
+    // 配置按鈕事件處理器
+    buttonUp.setPressedHandler(handleUp);      // 當按下“向上”按鈕時，呼叫 handleUp
+    buttonDown.setPressedHandler(handleDown);  // 當按下“向下”按鈕時，呼叫 handleDown
+
+    // 設定長按事件處理器
+    buttonUp.setLongClickHandler(handleLongPress);  // 當長按“向上”按鈕時，呼叫 handleLongPress
+
+  // 顯示初始頁面
+  showPage(currentPage);
 }
 
 void loop() {
-  unsigned long now = millis();
+    buttonUp.loop();
+    buttonDown.loop();
 
-  // 每隔33毫秒更新一次圖形
-  static unsigned long lastFrameTime = 0;
-  if (now - lastFrameTime >= 33) {
-    lastFrameTime = now;
-    float dt = 0.02;
-
-    // 更新呼吸數據
-    float omegaBreath = 2 * PI * currentBreathingRateRPM / 60;
-    breathPhase += omegaBreath * dt * 1.5;
-    if (breathPhase >= 2 * PI) breathPhase -= 2 * PI;
-    breathData[currentX - 10] = 20 * sin(breathPhase);
-
-    // 更新心跳數據
-    float omegaHeart = 2 * PI * currentHeartRateBPM / 60;
-    heartPhase += omegaHeart * dt * 1.5;
-    if (heartPhase >= 2 * PI) heartPhase -= 2 * PI;
-    heartData[currentX - 10] = generatePQRSTWave(heartPhase);
-
-    // 繪製心跳和呼吸波形
-    int up_y_position = 20;
-    int down_y_position = 150;
-
-    // 清除前一段的波形以實現滾動效果
-    int clearWidth = 25;  // 每次清除的寬度
-    tft.fillRect(currentX, up_y_position, clearWidth, down_y_position - up_y_position + 20, TFT_BLACK);
-
-    // 繪製新的心跳和呼吸數據
-    int y1 = map(heartData[currentX - 10], -2, 3, down_y_position - 18, up_y_position + 10);
-    if (currentX > 10) {
-      int y2 = map(heartData[currentX - 11], -2, 3, down_y_position - 18, up_y_position + 10);
-      tft.drawLine(currentX - 1, y2, currentX, y1, TFT_GREEN);
-    }
-
-    y1 = map(breathData[currentX - 10], -50, 50, down_y_position + 10, up_y_position);
-    if (currentX > 10) {
-      int y2 = map(breathData[currentX - 11], -50, 50, down_y_position + 10, up_y_position);
-      tft.drawLine(currentX - 1, y2, currentX, y1, TFT_YELLOW);
-    }
-
-    // 更新X座標，並實現滾動
-    currentX += 1;
-    if (currentX >= max_X) {
-      currentX = 10;
-    }
-  }
-}
-
-void updateHeartAndBreathDisplay() {
-  // 更新心率顯示
-  tft.setTextColor(TFT_GREEN, TFT_BLACK);
-  tft.loadFont("NotoSansBold15");
-  tft.fillRect(210, 10, 100, 40, TFT_BLACK);
-  tft.setCursor(230, 20);
-  tft.print(String(currentHeartRateBPM, 0));
-
-  // 更新呼吸速率顯示
-  tft.setTextColor(TFT_YELLOW, TFT_BLACK);
-  tft.fillRect(210, 70, 100, 40, TFT_BLACK);
-  tft.setCursor(230, 80);
-  tft.print(String(currentBreathingRateRPM, 0));
+    // 根據當前頁面編號刷新顯示
+    showPage(currentPage);
 }
