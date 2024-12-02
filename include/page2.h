@@ -5,8 +5,9 @@
 #include <TFT_eSPI.h>
 
 // 初始化心跳速率和呼吸速率的變數
-float currentHeartRateBPM = 60.0;  // 預設心率
-float currentBreathingRateRPM = 12.0;  // 預設呼吸速率
+// 在 page2.h 中聲明變數
+extern float currentHeartRateBPM;
+extern float currentBreathingRateRPM;
 
 // 定義存儲心跳和呼吸波形數據的陣列，長度為 200
 float heartData[200] = {0};
