@@ -5,8 +5,8 @@
 #include <TFT_eSPI.h>
 
 // 初始化心跳速率和呼吸速率的變數
-float currentHeartRateBPM = 60.0;  // 心率設定為常數 70 BPM
-float currentBreathingRateRPM = 12.0;  // 呼吸速率設定為常數 15 RPM
+float currentHeartRateBPM = 60.0;  // 預設心率
+float currentBreathingRateRPM = 12.0;  // 預設呼吸速率
 
 // 定義存儲心跳和呼吸波形數據的陣列，長度為 200
 float heartData[200] = {0};
@@ -21,24 +21,41 @@ int currentX = 10;
 // x 軸的最大範圍，用於實現滾動顯示效果
 int max_X = 200;
 
-
-
 // 更新顯示的心率和呼吸速率
 void updateHeartAndBreathDisplay(TFT_eSPI &tft, TFT_eSprite &background) {
-    // 更新心率顯示
-    background.setTextColor(TFT_GREEN, TFT_BLACK);  // 設置文字顏色為綠色，背景為黑色
-    background.loadFont("NotoSansBold15");  // 加載字體
-    background.fillRect(210, 10, 100, 40, TFT_BLACK);  // 清除心率顯示區域
-    background.setCursor(230, 20);  // 設置顯示心率的座標
-    background.print(String(currentHeartRateBPM, 0));  // 顯示心率
 
-    // 更新呼吸速率顯示
-    background.setTextColor(TFT_YELLOW, TFT_BLACK);  // 設置文字顏色為黃色，背景為黑色
-    background.fillRect(210, 70, 100, 40, TFT_BLACK);  // 清除呼吸速率顯示區域
-    background.setCursor(230, 80);  // 設置顯示呼吸速率的座標
-    background.print(String(currentBreathingRateRPM, 0));  // 顯示呼吸速率
+    // 清除背景精靈上顯示心率和呼吸速率的區域
+    background.fillRect(240, 30, 100, 40, TFT_BLACK);  // 清除心率顯示區域
+    background.fillRect(240, 90, 100, 40, TFT_BLACK);  // 清除呼吸速率顯示區域
+
+    // 創建心率和呼吸速率的 sprite
+    TFT_eSprite heartRateSprite = TFT_eSprite(&tft);
+    TFT_eSprite breathRateSprite = TFT_eSprite(&tft);
+
+    // 設定 sprite 大小
+    heartRateSprite.createSprite(100, 40);
+    breathRateSprite.createSprite(100, 40);
+
+    // 設定文字顏色和背景顏色
+    heartRateSprite.setTextColor(TFT_GREEN, TFT_BLACK);
+    breathRateSprite.setTextColor(TFT_YELLOW, TFT_BLACK);
+
+    // 清空 sprite 並填充為黑色背景
+    heartRateSprite.fillSprite(TFT_BLACK);
+    breathRateSprite.fillSprite(TFT_BLACK);
+
+    // 在 sprite 上繪製心率和呼吸速率
+    heartRateSprite.drawString(String(currentHeartRateBPM, 0), 0, 0, 6);
+    breathRateSprite.drawString(String(currentBreathingRateRPM, 0), 0, 0, 6);
+
+    // 將 sprite 推送到背景 sprite
+    heartRateSprite.pushToSprite(&background, 240, 30, TFT_BLACK);
+    breathRateSprite.pushToSprite(&background, 240, 90, TFT_BLACK);
+
+    // 刪除 sprite 以釋放內存
+    heartRateSprite.deleteSprite();
+    breathRateSprite.deleteSprite();
 }
-
 
 // 生成心跳 (PQRST) 波形的函數
 float generatePQRSTWave(float phase) {
@@ -57,8 +74,11 @@ float generatePQRSTWave(float phase) {
   }
 }
 
-// 用於顯示頁面 2 的函數
-void showPage2(TFT_eSPI &tft, TFT_eSprite &background) {
+
+
+// ... existing code ...
+
+void showPage2(TFT_eSPI &tft, TFT_eSprite &background, float heartRate, float breathingRate) {
     unsigned long now = millis();  // 獲取當前的毫秒數
 
     static unsigned long lastFrameTime = 0;
@@ -66,14 +86,14 @@ void showPage2(TFT_eSPI &tft, TFT_eSprite &background) {
         lastFrameTime = now;  // 更新上次繪製時間
         float dt = 0.023;  // 時間步長
 
-        // 更新呼吸波形數據
-        float omegaBreath = 2 * PI * currentBreathingRateRPM / 60;  // 呼吸速率轉換為徑頻率 (rad/s)
+        // 使用傳遞的呼吸率更新呼吸波形數據
+        float omegaBreath = 2 * PI * breathingRate / 60;  // 呼吸速率轉換為徑頻率 (rad/s)
         breathPhase += omegaBreath * dt * 1.5;  // 更新呼吸相位
         if (breathPhase >= 2 * PI) breathPhase -= 2 * PI;  // 保持相位在 0 到 2π 範圍內
         breathData[currentX - 10] = 20 * sin(breathPhase);  // 計算並存儲呼吸波形數據
 
-        // 更新心跳波形數據
-        float omegaHeart = 2 * PI * currentHeartRateBPM / 60;  // 心跳速率轉換為徑頻率 (rad/s)
+        // 使用傳遞的心率更新心跳波形數據
+        float omegaHeart = 2 * PI * heartRate / 60;  // 心跳速率轉換為徑頻率 (rad/s)
         heartPhase += omegaHeart * dt * 1.5;  // 更新心跳相位
         if (heartPhase >= 2 * PI) heartPhase -= 2 * PI;  // 保持相位在 0 到 2π 範圍內
         heartData[currentX - 10] = generatePQRSTWave(heartPhase);  // 計算並存儲心跳波形數據
@@ -106,12 +126,14 @@ void showPage2(TFT_eSPI &tft, TFT_eSprite &background) {
         }
 
         // 更新顯示的心率和呼吸速率
+        currentHeartRateBPM = heartRate;  // 更新全域變數以顯示
+        currentBreathingRateRPM = breathingRate;  // 更新全域變數以顯示
         updateHeartAndBreathDisplay(tft, background);
+
 
         // 將背景顯示到屏幕上
         background.pushSprite(0, 0);
     }
 }
-
 
 #endif // PAGE2_H

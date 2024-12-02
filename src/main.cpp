@@ -18,7 +18,7 @@ TFT_eSPI tft = TFT_eSPI();
 TFT_eSprite background = TFT_eSprite(&tft);  // Background sprite shared across pages
 
 // 當前顯示的頁面編號，初始為第 1 頁
-int currentPage = 1;
+int currentPage = 2;
 // 定義總頁數
 const int totalPages = 3;            
 
@@ -38,7 +38,7 @@ void showPage(int page) {
   // 根據頁面編號顯示對應的內容
   switch (page) {
     case 1: showPage1(tft, background); break;
-    case 2: showPage2(tft, background); break;
+    case 2: showPage2(tft, background, currentHeartRateBPM, currentBreathingRateRPM); break; // 傳遞心率和呼吸率
     case 3: showPage3(tft, background); break;
     // case 4: showPage4(tft, background); break;
     // case 5: showPage5(tft, background); break;
@@ -93,7 +93,7 @@ void setup() {
   background.createSprite(tft.width(), tft.height());
   background.fillSprite(TFT_BLACK);
 
-  background.setSwapBytes(true);  // 設置字節順序以確保顏色顯示正確
+  background.setSwapBytes(false);  // 設置字節順序以確保顏色顯示正確
 
   
     // 配置按鈕事件處理器
@@ -110,10 +110,25 @@ void setup() {
   showPage(currentPage);
 }
 
-void loop() {
-    buttonUp.loop();
-    buttonDown.loop();
 
+void loop() {
+  buttonUp.loop();
+  buttonDown.loop();
+
+  static unsigned long lastUpdateTime = 0;  // 上次更新的時間
+  unsigned long currentTime = millis();     // 當前時間
+
+  // 每隔一秒更新一次心率和呼吸率
+  if (currentTime - lastUpdateTime >= 3000) {
+    lastUpdateTime = currentTime;  // 更新上次更新的時間
+
+
+    // 隨機生成心率和呼吸率
+    currentHeartRateBPM = random(50, 71);  // 生成 50 到 70 之間的亂數
+    currentBreathingRateRPM = random(8, 16);  // 生成 8 到 15 之間的亂數
+
+
+  }
     // 根據當前頁面編號刷新顯示
-    showPage(currentPage);
+  showPage(currentPage);
 }
