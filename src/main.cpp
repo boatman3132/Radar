@@ -4,6 +4,7 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include "website.h" // 引入 website.h
+#include <SPIFFS.h>
 
 // 包含頁面檔案（假設它們各自定義了不同的頁面顯示函數）
 #include "page1.h"
@@ -89,11 +90,14 @@ void handleDown(Button2 &btn) {
 
 void setup() {
 
+
+  // 確保插上電池可以正常開機
   pinMode(PIN_POWER_ON, OUTPUT); //triggers the LCD backlight
   pinMode(PIN_LCD_BL, OUTPUT); // BackLight enable pin
 
   digitalWrite(PIN_POWER_ON, HIGH);
   digitalWrite(PIN_LCD_BL, HIGH);
+
 
   //以下內容為LCD螢幕顯示
 
@@ -119,52 +123,21 @@ void setup() {
 
   // 設定長按時間為一秒
   buttonUp.setLongClickTime(1000);  // 設置長按時間為 1000 毫秒
-
   // 設定長按事件處理器
   buttonUp.setLongClickHandler(handleLongPress);  // 當長按“向上”按鈕時，呼叫 handleLongPress
 
   // 顯示初始頁面
   showPage(currentPage);
-
     
   // 以下內容為網頁顯示
   Serial.begin(115200);
 
-
-  Serial.println();
-  Serial.println("Serial Monitor 初始化完成");
-
-  // 初始化隨機數生成器
-  randomSeed(analogRead(0));
-
-  // 連接Wi-Fi
-  Serial.print("Connecting to ");
-  Serial.println(ssid);
-
   WiFi.begin(ssid, password);
 
-  int attempts = 0;
-  while (WiFi.status() != WL_CONNECTED && attempts < 20) {
-    delay(500);
-    Serial.print(".");
-    attempts++;
-  }
-
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("");
-    Serial.println("WiFi connected");
-    Serial.println("IP address: ");
-    Serial.println(WiFi.localIP());
-  } else {
-    Serial.println("");
-    Serial.println("WiFi 連接失敗");
-  }
 
   setupServer(server); // 設置 Web 服務器的路由
 
   server.begin();
-  Serial.println("HTTP 服務器已啟動");
-
 
 
 }
@@ -180,23 +153,12 @@ void loop() {
   // 每隔3秒更新一次心率和呼吸率
   if (currentTime - lastUpdateTime >= 3000) {
     lastUpdateTime = currentTime;  // 更新上次更新的時間
-
-
     // 隨機生成心率和呼吸率
-    currentHeartRateBPM = static_cast<float>(random(50, 71));
+    currentHeartRateBPM = static_cast<float>(random(40, 91));
     currentBreathingRateRPM = static_cast<float>(random(8, 16));  // 生成 8 到 15 之間的亂數
-            
-    Serial.print("心率: ");
-    Serial.print(currentHeartRateBPM);
-    Serial.print(" BPM, 呼吸率: ");
-    Serial.print(currentBreathingRateRPM);
-    Serial.println(" RPM");
-
   }
     // 根據當前頁面編號刷新顯示
   showPage(currentPage);
-
-
 
   server.handleClient(); // 處理網頁客戶端請求
 
