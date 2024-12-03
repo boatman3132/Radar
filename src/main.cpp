@@ -88,13 +88,48 @@ void handleDown(Button2 &btn) {
 
 
 void setup() {
+
+  pinMode(PIN_POWER_ON, OUTPUT); //triggers the LCD backlight
+  pinMode(PIN_LCD_BL, OUTPUT); // BackLight enable pin
+
+  digitalWrite(PIN_POWER_ON, HIGH);
+  digitalWrite(PIN_LCD_BL, HIGH);
+
+  //以下內容為LCD螢幕顯示
+
+  Serial.begin(9600);  // 初始化 Serial 通訊，波特率設置為 9600
+
+  // 初始化 TFT 顯示屏
+  tft.init();
+  tft.setRotation(3);  // 設定顯示旋轉角度
+  // 建立背景精靈並填充黑色
+  background.createSprite(tft.width(), tft.height());
+  background.fillSprite(TFT_BLACK);
+
+  background.setSwapBytes(false);  // 設置字節順序以確保顏色顯示正確
+
+  
+
+
+  // 以下內容為按鈕翻頁與長按關機
+
+  // 配置按鈕事件處理器
+  buttonUp.setPressedHandler(handleUp);      // 當按下“向上”按鈕時，呼叫 handleUp
+  buttonDown.setPressedHandler(handleDown);  // 當按下“向下”按鈕時，呼叫 handleDown
+
+  // 設定長按時間為一秒
+  buttonUp.setLongClickTime(1000);  // 設置長按時間為 1000 毫秒
+
+  // 設定長按事件處理器
+  buttonUp.setLongClickHandler(handleLongPress);  // 當長按“向上”按鈕時，呼叫 handleLongPress
+
+  // 顯示初始頁面
+  showPage(currentPage);
+
+    
   // 以下內容為網頁顯示
   Serial.begin(115200);
 
-  // 等待串口監視器準備好
-  while (!Serial) {
-    ; // 等待
-  }
 
   Serial.println();
   Serial.println("Serial Monitor 初始化完成");
@@ -132,45 +167,6 @@ void setup() {
 
 
 
-
-
-
-  //以下內容為LCD螢幕顯示
-
-  Serial.begin(9600);  // 初始化 Serial 通訊，波特率設置為 9600
-
-
-  pinMode(PIN_POWER_ON, OUTPUT); //triggers the LCD backlight
-  pinMode(PIN_LCD_BL, OUTPUT); // BackLight enable pin
-
-  digitalWrite(PIN_POWER_ON, HIGH);
-  digitalWrite(PIN_LCD_BL, HIGH);
-  // 初始化 TFT 顯示屏
-  tft.init();
-  tft.setRotation(3);  // 設定顯示旋轉角度
-  // 建立背景精靈並填充黑色
-  background.createSprite(tft.width(), tft.height());
-  background.fillSprite(TFT_BLACK);
-
-  background.setSwapBytes(false);  // 設置字節順序以確保顏色顯示正確
-
-  
-
-
-  // 以下內容為按鈕翻頁與長按關機
-
-  // 配置按鈕事件處理器
-  buttonUp.setPressedHandler(handleUp);      // 當按下“向上”按鈕時，呼叫 handleUp
-  buttonDown.setPressedHandler(handleDown);  // 當按下“向下”按鈕時，呼叫 handleDown
-
-  // 設定長按時間為一秒
-  buttonUp.setLongClickTime(1000);  // 設置長按時間為 1000 毫秒
-
-  // 設定長按事件處理器
-  buttonUp.setLongClickHandler(handleLongPress);  // 當長按“向上”按鈕時，呼叫 handleLongPress
-
-  // 顯示初始頁面
-  showPage(currentPage);
 }
 
 
