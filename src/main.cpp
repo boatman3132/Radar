@@ -1,6 +1,10 @@
 #include <Arduino.h>
 #include <TFT_eSPI.h>
 #include <Button2.h>   // Button handling library
+#include <WiFi.h>
+#include <WebServer.h>
+#include "website.h" // 引入 website.h
+#include <SPIFFS.h>
 
 // 包含頁面檔案（假設它們各自定義了不同的頁面顯示函數）
 #include "page1.h"
@@ -12,12 +16,17 @@
 #define PIN_POWER_ON 15 // LCD and battery Power Enable
 #define PIN_LCD_BL 38 // BackLight enable pin (see Dimming.txt)
 
+// 替換為你的 Wi-Fi 網路名稱與密碼
+const char* ssid = "diningroom";
+const char* password = "thisissamuelh";
+
+WebServer server(80); // 設置Web服務器在端口80
 
 // 初始化 TFT 顯示屏
 TFT_eSPI tft = TFT_eSPI();
 TFT_eSprite background = TFT_eSprite(&tft);  // Background sprite shared across pages
 
-// 當前顯示的頁面編號，初始為第 1 頁
+// 當前顯示的頁面編號
 int currentPage = 2;
 // 定義總頁數
 const int totalPages = 3;            
@@ -25,6 +34,10 @@ const int totalPages = 3;
 // 定義按鈕的 GPIO 針腳
 Button2 buttonUp(14);    // 向上切換頁面的按鈕，連接 GPIO14
 Button2 buttonDown(0);   // 向下切換頁面的按鈕，連接 GPIO0
+
+float currentHeartRateBPM = 0.0;
+float currentBreathingRateRPM = 0.0;
+
 
 
 // 處理長按按鈕的事件
@@ -78,14 +91,18 @@ void handleDown(Button2 &btn) {
 void setup() {
 
 
-  Serial.begin(9600);  // 初始化 Serial 通訊，波特率設置為 9600
-
-
+  // 確保插上電池可以正常開機
   pinMode(PIN_POWER_ON, OUTPUT); //triggers the LCD backlight
   pinMode(PIN_LCD_BL, OUTPUT); // BackLight enable pin
 
   digitalWrite(PIN_POWER_ON, HIGH);
   digitalWrite(PIN_LCD_BL, HIGH);
+
+
+  //以下內容為LCD螢幕顯示
+
+  Serial.begin(9600);  // 初始化 Serial 通訊，波特率設置為 9600
+
   // 初始化 TFT 顯示屏
   tft.init();
   tft.setRotation(3);  // 設定顯示旋轉角度
@@ -96,18 +113,33 @@ void setup() {
   background.setSwapBytes(false);  // 設置字節順序以確保顏色顯示正確
 
   
-    // 配置按鈕事件處理器
-    buttonUp.setPressedHandler(handleUp);      // 當按下“向上”按鈕時，呼叫 handleUp
-    buttonDown.setPressedHandler(handleDown);  // 當按下“向下”按鈕時，呼叫 handleDown
 
-    // 設定長按時間為一秒
-    buttonUp.setLongClickTime(1000);  // 設置長按時間為 1000 毫秒
 
-    // 設定長按事件處理器
-    buttonUp.setLongClickHandler(handleLongPress);  // 當長按“向上”按鈕時，呼叫 handleLongPress
+  // 以下內容為按鈕翻頁與長按關機
+
+  // 配置按鈕事件處理器
+  buttonUp.setPressedHandler(handleUp);      // 當按下“向上”按鈕時，呼叫 handleUp
+  buttonDown.setPressedHandler(handleDown);  // 當按下“向下”按鈕時，呼叫 handleDown
+
+  // 設定長按時間為一秒
+  buttonUp.setLongClickTime(1000);  // 設置長按時間為 1000 毫秒
+  // 設定長按事件處理器
+  buttonUp.setLongClickHandler(handleLongPress);  // 當長按“向上”按鈕時，呼叫 handleLongPress
 
   // 顯示初始頁面
   showPage(currentPage);
+    
+  // 以下內容為網頁顯示
+  Serial.begin(115200);
+
+  WiFi.begin(ssid, password);
+
+
+  setupServer(server); // 設置 Web 服務器的路由
+
+  server.begin();
+
+
 }
 
 
@@ -118,17 +150,16 @@ void loop() {
   static unsigned long lastUpdateTime = 0;  // 上次更新的時間
   unsigned long currentTime = millis();     // 當前時間
 
-  // 每隔一秒更新一次心率和呼吸率
+  // 每隔3秒更新一次心率和呼吸率
   if (currentTime - lastUpdateTime >= 3000) {
     lastUpdateTime = currentTime;  // 更新上次更新的時間
-
-
     // 隨機生成心率和呼吸率
-    currentHeartRateBPM = random(50, 71);  // 生成 50 到 70 之間的亂數
-    currentBreathingRateRPM = random(8, 16);  // 生成 8 到 15 之間的亂數
-
-
+    currentHeartRateBPM = static_cast<float>(random(40, 91));
+    currentBreathingRateRPM = static_cast<float>(random(8, 16));  // 生成 8 到 15 之間的亂數
   }
     // 根據當前頁面編號刷新顯示
   showPage(currentPage);
+
+  server.handleClient(); // 處理網頁客戶端請求
+
 }
