@@ -102,4 +102,5 @@ void initSystem() {
     
     // 顯示初始頁面
     showPage(currentPage);
+    
 }

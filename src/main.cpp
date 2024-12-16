@@ -1,24 +1,33 @@
 #include <Arduino.h>
 #include "initial.h"
+#include "UARTHandler.h"
 
+UARTHandler uartHandler;
 
 void setup() {
     initSystem();
+    uartHandler.begin();
 }
 
 void loop() {
     buttonUp.loop();
     buttonDown.loop();
-
-// 更新隨機心跳和呼吸率
-
-    static unsigned long lastUpdateTime = 0;
+    static unsigned long lastReadTime = 0;
     unsigned long currentTime = millis();
 
-    if (currentTime - lastUpdateTime >= 3000) {
-        lastUpdateTime = currentTime;
-        currentHeartRateBPM = static_cast<float>(random(40, 91));
-        currentBreathingRateRPM = static_cast<float>(random(8, 16));
+    if (currentTime - lastReadTime >= 180) {
+        lastReadTime = currentTime;
+        
+        if (uartHandler.readData()) {
+            RadarData radarData = uartHandler.getRadarData();
+            currentHeartRateBPM = radarData.heartRateEst;
+            currentBreathingRateRPM = radarData.breathingRateEst;
+
+            Serial.print("心跳率: ");
+            Serial.print(currentHeartRateBPM);
+            Serial.print("  呼吸率: ");
+            Serial.println(currentBreathingRateRPM);
+        }
     }
 
     showPage(currentPage);
