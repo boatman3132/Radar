@@ -5,6 +5,7 @@
 #include <WebServer.h>
 #include "website.h" // 引入 website.h
 #include <SPIFFS.h>
+#include <Wire.h>
 
 // 包含頁面檔案（假設它們各自定義了不同的頁面顯示函數）
 #include "page1.h"
