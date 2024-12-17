@@ -99,11 +99,18 @@ void showPage2(TFT_eSPI &tft, TFT_eSprite &background, float heartRate, float br
             int y2 = map(heartData[currentX - 11], -2, 3, down_y_position - 18, up_y_position + 10);  // 獲取前一個 x 的心跳數據
             background.drawLine(currentX - 1, y2, currentX, y1, TFT_GREEN);  // 繪製心跳波形
         }
-
-        y1 = map(breathData[currentX - 10], -50, 50, down_y_position + 10, up_y_position);  // 映射呼吸數據到顯示屏上
-        if (currentX > 10) {
-            int y2 = map(breathData[currentX - 11], -50, 50, down_y_position + 10, up_y_position);  // 獲取前一個 x 的呼吸數據
-            background.drawLine(currentX - 1, y2, currentX, y1, TFT_YELLOW);  // 繪製呼吸波形
+        // 如果呼吸率為0，繪製水平直線
+        if (breathingRate == 0) {
+            int midY = (down_y_position + 10 + up_y_position) / 2;  // 計算中間位置
+            if (currentX > 10) {
+                background.drawLine(currentX - 1, midY, currentX, midY, TFT_YELLOW);
+            }
+        } else {
+            y1 = map(breathData[currentX - 10], -50, 50, down_y_position + 10, up_y_position);
+            if (currentX > 10) {
+                int y2 = map(breathData[currentX - 11], -50, 50, down_y_position + 10, up_y_position);
+                background.drawLine(currentX - 1, y2, currentX, y1, TFT_YELLOW);
+            }
         }
 
         // 更新 x 座標，以實現滾動顯示
